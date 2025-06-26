@@ -77,6 +77,24 @@ function App() {
     // fetchImages will be called by the useEffect below due to currentSearchTerm change
   };
 
+  // Handle download function (ensure it's defined within the App component's scope)
+  const handleDownload = async (imageUrl, downloadLocation) => {
+    // According to Unsplash API guidelines, call the download location to track downloads
+    try {
+      await fetch(downloadLocation, {
+        headers: {
+          Authorization: `Client-ID ${unsplashAccessKey}`,
+        },
+      });
+      // Then, open the image URL to allow browser to download
+      window.open(imageUrl + '?force=true', '_blank'); // Add ?force=true to encourage download
+    } catch (err) {
+      console.error("Error initiating download:", err);
+      // Fallback: just open the image in a new tab if download tracking fails
+      window.open(imageUrl, '_blank');
+    }
+  };
+
   // This useEffect now triggers ONLY when page changes OR when currentSearchTerm changes (via handleSearch)
   useEffect(() => {
     if (currentSearchTerm) { // Only fetch if there's a term to search for
@@ -157,7 +175,7 @@ function App() {
                 >
                   <button
                     className="px-4 py-2 bg-white text-indigo-700 font-semibold rounded-full shadow-lg hover:bg-indigo-100 transition-all duration-200"
-                    onClick={() => handleDownload(image.urls.full, image.links.download_location)} // Use 'full' for download
+                    onClick={() => handleDownload(image.urls.full, image.links.download_location)} // Call the function here
                   >
                     Download
                   </button>
