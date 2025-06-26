@@ -9,7 +9,8 @@ function App() {
   //    (Keep your Secret Key private, only Access Key is needed for client-side search)
   const unsplashAccessKey = "MJyrbwnYwakN_Ae-xzhsLiL6D9DNupldeph-gQ1r65g"; // Your Unsplash Access Key
 
-  const [query, setQuery] = useState('');
+  // Changed initial query state to 'nature' to show images on first load
+  const [query, setQuery] = useState('nature');
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -41,7 +42,14 @@ function App() {
       if (!response.ok) {
         // Handle API errors
         const errorData = await response.json();
-        throw new Error(errorData.errors ? errorData.errors.join(', ') : 'Failed to fetch images');
+        // Provide more specific error messages for common Unsplash issues
+        if (response.status === 403) {
+            throw new Error("API Rate Limit Exceeded or Invalid Access Key. Please wait a bit or check your key.");
+        } else if (response.status === 401) {
+            throw new Error("Unauthorized: Invalid Unsplash Access Key. Please check your key.");
+        } else {
+            throw new Error(errorData.errors ? errorData.errors.join(', ') : 'Failed to fetch images');
+        }
       }
 
       const data = await response.json();
@@ -86,11 +94,10 @@ function App() {
 
   // Fetch images on initial load or when page/query changes
   useEffect(() => {
-    // Only fetch on initial load or when query/page changes, not just on component mount
-    if (query) { // Only search if there's an actual query
-      fetchImages(query, page);
-    }
-  }, [page]); // Removed 'query' from dependencies to avoid double fetch with handleSearch
+    // This effect now always fetches if query or page changes
+    // It will run on initial mount due to 'nature' being the default query
+    fetchImages(query, page);
+  }, [page, query]); // Depend on both page and query
 
   // Focus on search input when component mounts
   useEffect(() => {
