@@ -2,20 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 
 function App() {
   // IMPORTANT: Replace with your actual Unsplash Access Key
-  // 1. Go to https://unsplash.com/developers
-  // 2. Log in or sign up.
-  // 3. Click 'Your apps' -> 'New Application'
-  // 4. Agree to the terms, create the app, and find your 'Access Key'.
-  //    (Keep your Secret Key private, only Access Key is needed for client-side search)
   const unsplashAccessKey = "MJyrbwnYwakN_Ae-xzhsLiL6D9DNupldeph-gQ1r65g"; // Your Unsplash Access Key
 
-  // Changed initial query state to 'nature' to show images on first load
-  const [query, setQuery] = useState('nature');
+  // Changed initial query state to '' (empty) so no search happens on load
+  const [query, setQuery] = useState('');
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [currentSearchTerm, setCurrentSearchTerm] = useState(''); // To track the term that was actually searched
 
   const searchInputRef = useRef(null); // Ref for the search input
 
@@ -24,6 +20,13 @@ function App() {
     if (!unsplashAccessKey) {
       setError("Please add your Unsplash Access Key in the code (unsplashAccessKey variable).");
       return;
+    }
+    if (!searchQuery) { // Prevent searching with an empty query
+        setImages([]);
+        setTotalPages(1);
+        setLoading(false);
+        setError('');
+        return;
     }
 
     setLoading(true);
@@ -42,7 +45,6 @@ function App() {
       if (!response.ok) {
         // Handle API errors
         const errorData = await response.json();
-        // Provide more specific error messages for common Unsplash issues
         if (response.status === 403) {
             throw new Error("API Rate Limit Exceeded or Invalid Access Key. Please wait a bit or check your key.");
         } else if (response.status === 401) {
@@ -67,37 +69,20 @@ function App() {
     }
   };
 
-  // Handle search submission
+  // Handle search submission - ONLY this should trigger a new search query
   const handleSearch = (e) => {
     e.preventDefault(); // Prevent page reload on form submission
     setPage(1); // Reset to first page for new search
-    fetchImages(query, 1);
+    setCurrentSearchTerm(query); // Update the term that will actually be searched
+    // fetchImages will be called by the useEffect below due to currentSearchTerm change
   };
 
-  // Handle download
-  const handleDownload = async (imageUrl, downloadLocation) => {
-    // According to Unsplash API guidelines, call the download location to track downloads
-    try {
-      await fetch(downloadLocation, {
-        headers: {
-          Authorization: `Client-ID ${unsplashAccessKey}`,
-        },
-      });
-      // Then, open the image URL to allow browser to download
-      window.open(imageUrl + '?force=true', '_blank'); // Add ?force=true to encourage download
-    } catch (err) {
-      console.error("Error initiating download:", err);
-      // Fallback: just open the image in a new tab if download tracking fails
-      window.open(imageUrl, '_blank');
-    }
-  };
-
-  // Fetch images on initial load or when page/query changes
+  // This useEffect now triggers ONLY when page changes OR when currentSearchTerm changes (via handleSearch)
   useEffect(() => {
-    // This effect now always fetches if query or page changes
-    // It will run on initial mount due to 'nature' being the default query
-    fetchImages(query, page);
-  }, [page, query]); // Depend on both page and query
+    if (currentSearchTerm) { // Only fetch if there's a term to search for
+      fetchImages(currentSearchTerm, page);
+    }
+  }, [page, currentSearchTerm]); // Depend on page and currentSearchTerm
 
   // Focus on search input when component mounts
   useEffect(() => {
